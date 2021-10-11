@@ -2,22 +2,78 @@ import Head from 'next/head'
 import Header from '@components/Header'
 import Footer from '@components/Footer'
 
+
+import {useState} from 'react'
+import {Dropbox} from 'dropbox';
+
+const imageFormat = "image/jpeg";
+
+function base64ToArrayBuffer(base64) {
+    let data = base64.split('base64,')[1];
+    let binary_string = window.atob(data),
+        len = binary_string.length,
+        bytes = new Uint8Array(len);
+
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+function save(interval) {
+    let video = document.querySelector("#video"),
+        canvas = document.querySelector("#canvas"),
+        ACCESS_TOKEN = process.env.ACCESS_TOKEN, //
+        dbx = new Dropbox({accessToken: ACCESS_TOKEN});
+
+    navigator.mediaDevices.getUserMedia({video: true, audio: false})
+        .then((stream) => {
+            video.srcObject = stream;
+            video.addEventListener("play", () => {
+                setTimeout(() => {
+                    canvas.width = video.width;
+                    canvas.height = video.height;
+                    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+                    let data = canvas.toDataURL(imageFormat);
+                    dbx.filesUpload({path: '/test' + Date.now() + '.jpg', contents: base64ToArrayBuffer(data)})
+                        .then((response) => {
+                            console.log(response);
+                        })
+                        .catch((uploadErr) => {
+                            console.log(uploadErr);
+                        });
+                }, 1000 /*ms*/)
+
+            }, false);
+            setInterval(() => {
+                video.play();
+                setInterval(() => video.pause(), 2000)
+            }, 10000)
+        });
+}
+
 export default function Home() {
-  return (
-    <div className="container">
-      <Head>
-        <title>Next.js Starter!</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+    const [interval, setIntervalValue] = useState(3600)
+    return (
 
-      <main>
-        <Header title="Welcome to my app!" />
-        <p className="description">
-          Get started by editing <code>pages/index.js</code>
-        </p>
-      </main>
 
-      <Footer />
-    </div>
-  )
+        <div className="container">
+            <Head>
+                <title>Next.js Starter!</title>
+                <link rel="icon" href="/favicon.ico"/>
+            </Head>
+
+            <main>
+                <Header title="Welcome to my app!"/>
+                <div>{ interval }</div>
+                <div><input type="text" value={ interval } onChange={(e)=>setIntervalValue(e.target.value)} /></div>
+                <button onClick={() => save(interval)}>Start Recording</button>
+                <video id="video" width="800" height="600"></video>
+                <canvas id="canvas"></canvas>
+
+            </main>
+
+            <Footer/>
+        </div>
+    )
 }
