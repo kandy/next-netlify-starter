@@ -25,7 +25,7 @@ function save(accessToken, interval) {
         canvas = document.querySelector("#canvas"),
         dbx = new Dropbox({accessToken: accessToken});
 
-    navigator.mediaDevices.getUserMedia({video: true, audio: false})
+    navigator.mediaDevices.getUserMedia({video: {facingMode: "environment"}, audio: false})
         .then((stream) => {
             video.srcObject = stream;
             video.addEventListener("play", () => {
