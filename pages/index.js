@@ -44,10 +44,12 @@ function save(accessToken, interval) {
                 }, 1000 /*ms*/)
 
             }, false);
-            setInterval(() => {
+            let recordFrames = () => {
                 video.play();
                 setInterval(() => video.pause(), 2000)
-            }, parseInt(interval, 10) * 1000)
+            };
+            setInterval(recordFrames, parseInt(interval, 10) * 1000);
+            recordFrames();
         });
 }
 
