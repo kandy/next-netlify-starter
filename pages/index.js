@@ -20,11 +20,10 @@ function base64ToArrayBuffer(base64) {
     return bytes.buffer;
 }
 
-function save(interval) {
+function save(accessToken, interval) {
     let video = document.querySelector("#video"),
         canvas = document.querySelector("#canvas"),
-        ACCESS_TOKEN = process.env.ACCESS_TOKEN, //
-        dbx = new Dropbox({accessToken: ACCESS_TOKEN});
+        dbx = new Dropbox({accessToken: accessToken});
 
     navigator.mediaDevices.getUserMedia({video: true, audio: false})
         .then((stream) => {
@@ -48,12 +47,21 @@ function save(interval) {
             setInterval(() => {
                 video.play();
                 setInterval(() => video.pause(), 2000)
-            }, 10000)
+            }, parseInt(interval, 10) * 1000)
         });
 }
 
-export default function Home() {
+export async function getStaticProps() {
+    return {
+       // key: '123',
+        props: {
+            "access_kay": process.env.ACCESS_TOKEN
+        } //
+    }
+}
+export default function Home({access_kay}) {
     const [interval, setIntervalValue] = useState(3600)
+
     return (
 
 
@@ -66,8 +74,11 @@ export default function Home() {
             <main>
                 <Header title="Welcome to my app!"/>
                 <div>{ interval }</div>
-                <div><input type="text" value={ interval } onChange={(e)=>setIntervalValue(e.target.value)} /></div>
-                <button onClick={() => save(interval)}>Start Recording</button>
+                <div>
+                    <input type="text" value={ interval }
+                            onChange={(e) => setIntervalValue(e.target.value)} />
+                </div>
+                <button onClick={() => save(access_kay, interval)}>Start Recording</button>
                 <video id="video" width="800" height="600"></video>
                 <canvas id="canvas"></canvas>
 
