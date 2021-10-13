@@ -6,50 +6,31 @@ import Footer from '@components/Footer'
 import {useState} from 'react'
 import {Dropbox} from 'dropbox';
 
-const imageFormat = "image/jpeg";
-
-function base64ToArrayBuffer(base64) {
-    let data = base64.split('base64,')[1];
-    let binary_string = window.atob(data),
-        len = binary_string.length,
-        bytes = new Uint8Array(len);
-
-    for (let i = 0; i < len; i++) {
-        bytes[i] = binary_string.charCodeAt(i);
-    }
-    return bytes.buffer;
-}
+let timer;
 
 function save(accessToken, interval) {
-    let video = document.querySelector("#video"),
-        canvas = document.querySelector("#canvas"),
+    let canvas = document.querySelector("#canvas"),
         dbx = new Dropbox({accessToken: accessToken});
 
     navigator.mediaDevices.getUserMedia({video: {facingMode: "environment"}, audio: false})
         .then((stream) => {
-            video.srcObject = stream;
-            video.addEventListener("play", () => {
-                setTimeout(() => {
-                    canvas.width = video.width;
-                    canvas.height = video.height;
-                    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-                    let data = canvas.toDataURL(imageFormat);
-                    dbx.filesUpload({path: '/test' + Date.now() + '.jpg', contents: base64ToArrayBuffer(data)})
-                        .then((response) => {
-                            console.log(response);
-                        })
-                        .catch((uploadErr) => {
-                            console.log(uploadErr);
-                        });
-                }, 1000 /*ms*/)
+            let imageCapture = new ImageCapture(stream.getVideoTracks()[0]);
 
-            }, false);
-            let recordFrames = () => {
-                video.play();
-                setInterval(() => video.pause(), 2000)
-            };
-            setInterval(recordFrames, parseInt(interval, 10) * 1000);
-            recordFrames();
+            let upload = () => imageCapture.takePhoto().then((photo) => {
+                canvas.src = URL.createObjectURL(photo);
+
+                dbx.filesUpload({path: '/test' + Date.now() + '.jpg', contents: photo})
+                    .then((response) => {
+                        console.log(response);
+                    })
+                    .catch((uploadErr) => {
+                        console.log(uploadErr);
+                    });
+            });
+
+            if (timer != undefined) { clearInterval(timer)};
+            timer = setInterval(upload, parseInt(interval, 10)  /* s */ * 1000);
+            upload();
         });
 }
 
@@ -81,8 +62,7 @@ export default function Home({access_kay}) {
                             onChange={(e) => setIntervalValue(e.target.value)} />
                 </div>
                 <button onClick={() => save(access_kay, interval)}>Start Recording</button>
-                <video id="video" width="800" height="600"></video>
-                <canvas id="canvas"></canvas>
+                <img id="canvas" width="800" height="600"></img>
 
             </main>
 
